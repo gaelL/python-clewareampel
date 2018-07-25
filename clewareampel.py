@@ -1,3 +1,7 @@
+# Enable debug
+#import os
+#os.environ['PYUSB_DEBUG'] = 'debug'
+
 import sys
 import argparse
 
@@ -36,7 +40,22 @@ class ClewareAmpel:
             self.device.attach_kernel_driver(self.interface)
 
     def _set_led(self, color, value):
-        self.device.ctrl_transfer(0x21, 0x09, 0x200, 0x00, [0x00, color, value])
+        cfg = self.device.get_active_configuration()
+        intf = cfg[(0,0)]
+        ep = usb.util.find_descriptor(
+            intf,
+            # match the first OUT endpoint
+            custom_match = \
+            lambda e: \
+                usb.util.endpoint_direction(e.bEndpointAddress) == \
+                usb.util.ENDPOINT_OUT)
+
+        assert ep is not None
+
+        # write the data
+        ep.write([0x00, color, value])
+        #self.device.ctrl_transfer(0x21, 0x09, 0x200, 0x00, [0x00, color, value])
+
 
     def all_on(self):
         self.red_on()
